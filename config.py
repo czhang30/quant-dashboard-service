@@ -27,7 +27,7 @@ INDICATOR_CFG = {
     "sma_fast": 50,
     "sma_slow": 200,
     "sr_lookback": 20,
-    "fib_lookback": 15,  # how many bars (data interval, e.g. day) to look back for fib levels
+    "fib_lookback": 60,  # how many bars (data interval, e.g. day) to look back for fib levels
     "vol_lookback": 20,
 }
 

@@ -16,7 +16,7 @@ Alert rules are declarative dicts evaluated by alerts.py. Supported `type`s:
 WATCHLIST = ["PATH", "NOW", "MO", "PM", "TSLA", "MSFT", "ORCL", "NOK", "GFS", "SOXL"]
 
 # Data resolution for the dashboard.
-DATA_PERIOD = "6mo"      # how much history to pull (yfinance period string)
+DATA_PERIOD = "12mo"      # how much history to pull (yfinance period string)
 DATA_INTERVAL = "1d"     # "1d" for swing view; "5m"/"15m" for intraday
 REFRESH_SECONDS = 60     # dashboard auto-refresh cadence
 
@@ -27,7 +27,7 @@ INDICATOR_CFG = {
     "sma_fast": 50,
     "sma_slow": 200,
     "sr_lookback": 20,
-    "fib_lookback": 60,
+    "fib_lookback": 15,  # how many bars (data interval, e.g. day) to look back for fib levels
     "vol_lookback": 20,
 }
 

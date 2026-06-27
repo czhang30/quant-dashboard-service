@@ -29,6 +29,7 @@ except ImportError:
 
 try:
     import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
     _HAS_PLOTLY = True
 except ImportError:
     _HAS_PLOTLY = False
@@ -41,6 +42,8 @@ if "alert_state" not in st.session_state:
     st.session_state.alert_state = {}      # de-dup memory
 if "alert_feed" not in st.session_state:
     st.session_state.alert_feed = []       # rolling log of fired alerts
+if "watchlist" not in st.session_state:
+    st.session_state.watchlist = list(C.WATCHLIST)
 
 broker = PaperBroker(
     C.ALPACA_API_KEY, C.ALPACA_SECRET_KEY, C.ALPACA_PAPER_URL, C.ALPACA_ENABLED
@@ -59,7 +62,29 @@ def load(tickers, period, interval):
     return D.get_watchlist(list(tickers), period=period, interval=interval)
 
 
-hist = load(tuple(C.WATCHLIST), C.DATA_PERIOD, C.DATA_INTERVAL)
+# --- sidebar: watchlist management ---------------------------------------
+with st.sidebar:
+    with st.expander("Watchlist", expanded=False):
+        add_col, btn_col = st.columns([3, 1])
+        new_ticker = add_col.text_input("Add ticker", placeholder="e.g. AAPL", label_visibility="collapsed")
+        if btn_col.button("Add", use_container_width=True):
+            t = new_ticker.strip().upper()
+            if t and t not in st.session_state.watchlist:
+                st.session_state.watchlist.append(t)
+                st.rerun()
+
+        to_remove = []
+        for tk in list(st.session_state.watchlist):
+            col_tk, col_rm = st.columns([4, 1])
+            col_tk.write(tk)
+            if col_rm.button("✕", key=f"rm_{tk}"):
+                to_remove.append(tk)
+        for tk in to_remove:
+            st.session_state.watchlist.remove(tk)
+        if to_remove:
+            st.rerun()
+
+hist = load(tuple(st.session_state.watchlist), C.DATA_PERIOD, C.DATA_INTERVAL)
 
 # --- compute snapshots + evaluate alerts ---------------------------------
 rows, snapshots = [], {}
@@ -135,42 +160,68 @@ with left:
         df = hist[sel]
         ind = snapshots[sel]
         if _HAS_PLOTLY:
-            fig = go.Figure()
+            macd_line, signal_line, macd_hist = I.macd(df["Close"])
+            hist_colors = ["#1d9e75" if v >= 0 else "#e24b4a" for v in macd_hist]
+
+            fig = make_subplots(
+                rows=2, cols=1, shared_xaxes=True,
+                row_heights=[0.7, 0.3], vertical_spacing=0.04,
+            )
             fig.add_trace(
                 go.Candlestick(
                     x=df.index, open=df["Open"], high=df["High"],
                     low=df["Low"], close=df["Close"], name=sel,
-                )
+                ), row=1, col=1,
             )
             fig.add_trace(
                 go.Scatter(
                     x=df.index, y=I.ema(df["Close"], C.INDICATOR_CFG["ema_fast"]),
-                    line=dict(width=1, dash="dot"), name=f"EMA{C.INDICATOR_CFG['ema_fast']}",
-                )
+                    line=dict(width=1, dash="dot", color="green"), name=f"EMA{C.INDICATOR_CFG['ema_fast']}",
+                ), row=1, col=1,
             )
             fig.add_trace(
                 go.Scatter(
                     x=df.index, y=I.sma(df["Close"], C.INDICATOR_CFG["sma_fast"]),
-                    line=dict(width=1), name=f"SMA{C.INDICATOR_CFG['sma_fast']}",
-                )
+                    line=dict(width=1, color="blue"), name=f"SMA{C.INDICATOR_CFG['sma_fast']}",
+                ), row=1, col=1,
             )
             fig.add_trace(
                 go.Scatter(
                     x=df.index, y=I.sma(df["Close"], C.INDICATOR_CFG["sma_slow"]),
-                    line=dict(width=1), name=f"SMA{C.INDICATOR_CFG['sma_slow']}",
-                )
+                    line=dict(width=1, color="red"), name=f"SMA{C.INDICATOR_CFG['sma_slow']}",
+                ), row=1, col=1,
             )
             for label in ("38.2%", "50%", "61.8%"):
                 fig.add_hline(
                     y=ind["fib"][label], line_dash="dot", line_width=1,
                     annotation_text=f"fib {label}", annotation_position="right",
+                    row=1, col=1,
                 )
-            fig.add_hline(y=ind["support"], line_color="#1d9e75", line_width=1)
-            fig.add_hline(y=ind["resistance"], line_color="#e24b4a", line_width=1)
+            fig.add_hline(y=ind["support"], line_color="#022D1F", line_width=1, row=1, col=1)
+            fig.add_hline(y=ind["resistance"], line_color="#f20a9d", line_width=1, row=1, col=1)
+            fig.add_trace(
+                go.Bar(
+                    x=df.index, y=macd_hist, name="MACD Hist",
+                    marker_color=hist_colors, showlegend=False,
+                ), row=2, col=1,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index, y=macd_line,
+                    line=dict(width=1, color="blue"), name="MACD",
+                ), row=2, col=1,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index, y=signal_line,
+                    line=dict(width=1, color="orange"), name="Signal",
+                ), row=2, col=1,
+            )
             fig.update_layout(
-                height=460, margin=dict(l=0, r=0, t=10, b=0),
+                height=620, margin=dict(l=0, r=0, t=10, b=0),
                 xaxis_rangeslider_visible=False, showlegend=True,
             )
+            fig.update_xaxes(rangeslider_visible=False)
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.line_chart(df["Close"])

@@ -44,6 +44,16 @@ ALERT_RULES = [
     # Example ticker-specific level alert from our PATH analysis:
     {"name": "PATH reclaims 11.20", "tickers": ["PATH"], "type": "price_above",       "level": 11.20},
     {"name": "PATH at 61.8% fib",   "tickers": ["PATH"], "type": "near_fib", "which": "61.8%", "pct": 0.8},
+    # Bollinger %B mean-reversion
+    {"name": "%B oversold (<5%)",    "tickers": "*", "type": "bb_pct_b_below", "level": 0.05},
+    {"name": "%B overbought (>95%)", "tickers": "*", "type": "bb_pct_b_above", "level": 0.95},
+    # Z-score extremes
+    {"name": "Z-score -2σ",          "tickers": "*", "type": "zscore_below",   "level": -2.0},
+    {"name": "Z-score +2σ",          "tickers": "*", "type": "zscore_above",   "level":  2.0},
+    # ADX regime
+    {"name": "Trending (ADX>25)",    "tickers": "*", "type": "adx_above",      "level": 25},
+    # Cross-sectional momentum
+    {"name": "Top-3 momentum",       "tickers": "*", "type": "mom_rank_top",   "n": 3},
 ]
 
 # --- Optional outbound notifications -------------------------------------

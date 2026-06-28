@@ -53,6 +53,34 @@ def _condition_met(rule: dict, ind: dict) -> bool:
         if lvl is None or not lvl:
             return False
         return abs(price / lvl - 1) * 100 <= rule["pct"]
+
+    # --- quant indicators ------------------------------------------------
+    if t == "bb_pct_b_above":
+        v = ind.get("bb_pct_b")
+        return v is not None and not np.isnan(v) and v >= rule["level"]
+    if t == "bb_pct_b_below":
+        v = ind.get("bb_pct_b")
+        return v is not None and not np.isnan(v) and v <= rule["level"]
+    if t == "zscore_above":
+        v = ind.get("zscore")
+        return v is not None and not np.isnan(v) and v >= rule["level"]
+    if t == "zscore_below":
+        v = ind.get("zscore")
+        return v is not None and not np.isnan(v) and v <= rule["level"]
+    if t == "adx_above":
+        v = ind.get("adx")
+        return v is not None and not np.isnan(v) and v >= rule["level"]
+    if t == "adx_below":
+        v = ind.get("adx")
+        return v is not None and not np.isnan(v) and v < rule["level"]
+    if t == "mom_rank_top":
+        rank = ind.get("mom_rank")
+        return rank is not None and rank <= rule["n"]
+    if t == "mom_rank_bottom":
+        rank = ind.get("mom_rank")
+        total = ind.get("mom_rank_total", 0)
+        return rank is not None and rank >= total - rule["n"] + 1
+
     return False
 
 
